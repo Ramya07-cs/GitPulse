@@ -2,7 +2,7 @@ import os
 import httpx
 from dotenv import load_dotenv
 from app.schemas import GitHubUser,GitHubRepo
-from fastapi import HTTPException,Query
+from fastapi import HTTPException
 from typing import Literal,Optional
 
 load_dotenv()  #Load environment variables from .env file
@@ -25,7 +25,7 @@ async def fetch_user(username : str) -> GitHubUser:
         return GitHubUser(**data)    
 
 #fetches all the public repos of the user and returns only the fields in GitHubRepo model for every repo as a list
-async def fetch_repos(username : str,repo_type : str = "owner",per_page : int = Query(default=100,gt=0,le=100),sort : Literal["created","updated","full_name","pushed"] = "updated") -> list[GitHubRepo]:
+async def fetch_repos(username : str,repo_type : str = "owner",per_page : int = 100,sort : Literal["created","updated","full_name","pushed"] = "updated") -> list[GitHubRepo]:
     async with httpx.AsyncClient() as client:    
         response = await client.get("https://api.github.com/users/{}/repos?type={}&per_page={}&sort={}".format(username,repo_type,per_page,sort),headers = headers)
 
