@@ -24,7 +24,7 @@ async def get_repos(username : str,
                     per_page : int = Query(default=100,gt=0,le=100),
                     sort : Literal["created","updated","full_name","pushed"] = "updated"):
     return await fetch_repos(username,repo_type,per_page,sort)
-
+"""
 @app.get("/user/{username}/events",response_model=list[GitHubEvent])
 async def get_events(username : str,per_page : int = Query(default=100,gt=0,le=100),page : int = Query(default=1,gt = 0,le = 3)):
     page1 =  await fetch_events(username)
@@ -33,7 +33,8 @@ async def get_events(username : str,per_page : int = Query(default=100,gt=0,le=1
             page2, page3 = await asyncio.gather(fetch_events(username,page = 2),fetch_events(username,page = 3))
             return page1 + page2 + page3
     return page1
-"""
+
+
 #we'll fetch all data at once and analyse it
 @app.get("/analyse/{username}/dashboard",response_model = DashBoardResponse)
 async def analyse_profile(username : str):
@@ -51,6 +52,9 @@ async def analyse_profile(username : str):
 
     top_repos = get_top_repos(repos_with_scores)
 
+    activity_stats = analyse_activity(events)
+    
     return DashBoardResponse(profile = user,
                             repositories = repos_with_scores,
-                            repo_stats = RepoStats(total_stars = stars,total_forks = forks,language_breakdown = lang_analysis,top_repositories = top_repos))
+                            repo_stats = RepoStats(total_stars = stars,total_forks = forks,language_breakdown = lang_analysis,top_repositories = top_repos),
+                            activity_insights = activity_stats)

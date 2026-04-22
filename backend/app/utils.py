@@ -1,5 +1,5 @@
 from typing import Tuple
-from app.schemas import GitHubRepo,GitHubEvent,LanguageBreakdown,RepoWithScore,EventSummary
+from app.schemas import *
 from collections import Counter
 from datetime import datetime,timedelta,timezone
 
@@ -98,27 +98,27 @@ def get_event_impact(event : GitHubEvent) -> int:
     
     if event_type == "PushEvent":  #the data has many inconsistencies,size and commit fields may or may not be there
 
-        if "size" in payload:  #number of commits
-            return min(10,payload["size"] )  
+        if payload.size:  #number of commits
+            return min(10,payload.size )  
 
-        elif payload.get("commits",[]) and isinstance(payload["commits"],list):    
-            return min(10,len(payload["commits"]))   #gives the commit count for that push; 50-commit push doesn't dominate the heatmap
+        elif payload.commits:    
+            return min(10,len(payload.commits))   #gives the commit count for that push; 50-commit push doesn't dominate the heatmap
 
         else:
             return 1
 
     if event_type == "PullRequestEvent":   #Opening/merging PR shows more effort
 
-        if payload.get("pull_request",{}) and isinstance(payload["pull_request"],dict):
+        if payload.pull_request:
             #action can be "opened","closed", "reopened" or "synchronize"(a commit pushed to open PR)
             
-            if payload.get("action","") == "closed":
-                if payload["pull_request"]["merged"]:   #work was accepted 
+            if payload.action == "closed":
+                if payload.pull_request.merged:   #work was accepted 
                     return 8                    
                 else:
                     return 3                        #work was abandoned
 
-            elif payload.get("action","") == "opened":
+            elif payload.action == "opened":
                 return 4           #new contribution started
 
             else:
@@ -126,7 +126,7 @@ def get_event_impact(event : GitHubEvent) -> int:
 
     if event_type == "IssuesEvent":
 
-        action = payload.get("action","")
+        action = payload.action
         if action == "opened" or action == "closed":
             return 4
 
@@ -136,13 +136,50 @@ def get_event_impact(event : GitHubEvent) -> int:
     if event_type == "CreateEvent":
         #ref_type can be repository,branch or tag
 
-        if payload.get("ref_type","") == "repository":   #starting something new
+        if payload.ref_type == "repository":   #starting something new
             return 4
         
-        elif payload.get("ref_type","") == "tag":    #signals a release
+        elif payload.ref_type == "tag":    #signals a release
             return 3
 
-        elif payload.get("ref_type","") == "branch":
+        elif payload.ref_type == "branch":
             return 1   
 
-    return IMPACT_MAP.get(etype, 1)    #fallback for PublicEvent, MemberEvent, ReleaseEvent
+    return IMPACT_MAP.get(event_type, 1)    #fallback for PublicEvent, MemberEvent, ReleaseEvent
+
+
+def analyse_activity(events : list[GitHubEvent]) -> ActivityInsights:
+    """Analyzes event patterns to determine behavior and impact."""
+
+    if not events:
+        return ActivityInsights(most_active_day = "N/A",most_active_hour="N/A")
+
+    daily_impact = Counter()      #stores data in the form of list of tuples
+    hourly_impact = Counter() 
+
+    #Heatmap's cells are powered by impact-weights which determine the effort,instead of frequency
+    heatmap_grid = [[0 for _ in range(24)] for _ in range(7)]   
+
+    days = {"Sunday" : 1, "Monday" : 2, "Tuesday" : 3, "Wednesday" : 4, "Thursday" : 5, "Friday" : 6, "Saturday" : 7}
+
+    for event in events:
+        impact = get_event_impact(event)
+
+        utc_date = datetime.fromisoformat(event.created_at.replace("Z","+00:00"))  # Parse as UTC
+        
+        day = utc_date.strftime("%A")     #we get the day when %A is passed
+        hour = utc_date.hour  #hour is an integer b/w 0 to 23
+
+        daily_impact[day] += impact
+        hourly_impact[hour] += impact
+
+        day_index = days[day] - 1
+
+        heatmap_grid[day_index][hour] += impact
+
+    most_active_day = daily_impact.most_common(1)[0][0] if daily_impact else "N/A"
+
+    peak_hour = hourly_impact.most_common(1)[0][0] if hourly_impact else "N/A"
+    readable_hour = datetime.strptime(str(peak_hour), "%H").strftime("%I %p")  
+
+    return ActivityInsights(most_active_day = most_active_day,most_active_hour=readable_hour,heatmap = heatmap_grid)

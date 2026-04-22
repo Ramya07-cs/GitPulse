@@ -42,11 +42,22 @@ class GitHubRepo(BaseModel):
 class Repo(BaseModel):
     name : str
 
+#these models are written ,bcz only these fields are required
+class PullRequestPayload(BaseModel):
+    merged: bool = False
+
+class GitHubEventPayload(BaseModel):
+    action: Optional[str] = None
+    size: Optional[int] = None
+    commits: Optional[list] = None    # * PushEvent
+    ref_type: Optional[str] = None    # * CreateEvent,DeleteEvent
+    pull_request: Optional[PullRequestPayload] = None  # * PullRequestEvent
+
 class GitHubEvent(BaseModel):
     type : Annotated[str,Field(description = "Event type")]
     created_at : str
     repo : Repo  #we only need repo["name"]
-    payload : dict = {}  #this is polymorphic,hence the structure varies for different events
+    payload : GitHubEventPayload  #this is polymorphic,hence the structure varies for different events
 
 #this serves RepoStats
 class LanguageBreakdown(BaseModel):
@@ -67,7 +78,14 @@ class EventSummary(BaseModel):
     event : GitHubEvent
     time_ago : str
     
+class ActivityInsights(BaseModel):
+    most_active_day: str
+    most_active_hour: str
+    heatmap : list[list[int]]
+    #recent_events : list[EventSummary]
+
 class DashBoardResponse(BaseModel):
     profile : GitHubUser
     repositories : list[RepoWithScore]
     repo_stats: RepoStats
+    activity_insights: ActivityInsights
