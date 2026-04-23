@@ -75,14 +75,15 @@ class RepoStats(BaseModel):
     top_repositories : list[RepoWithScore]
 
 class EventSummary(BaseModel):
-    event : GitHubEvent
+    event_type : str
+    repository : str
     time_ago : str
     
 class ActivityInsights(BaseModel):
     most_active_day: str
     most_active_hour: str
     heatmap : list[list[int]]
-    #recent_events : list[EventSummary]
+    recent_events : list[EventSummary]
 
 class DashBoardResponse(BaseModel):
     profile : GitHubUser

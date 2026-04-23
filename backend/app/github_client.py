@@ -69,7 +69,6 @@ async def fetch_events(username : str, per_page : int = 100,page : int = 1) -> l
             raise HTTPException(status_code=429, detail=f"Limit resets at {calculate_reset_time(response)}")
 
         events = response.json()
-        print(len(events))
 
         if response.status_code == 200 and not events: 
             return []

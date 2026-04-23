@@ -148,19 +148,59 @@ def get_event_impact(event : GitHubEvent) -> int:
     return IMPACT_MAP.get(event_type, 1)    #fallback for PublicEvent, MemberEvent, ReleaseEvent
 
 
+def time_ago(date_str : str) -> str:
+    date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))  
+    
+    now = datetime.now(timezone.utc)   #gives the current time in utc
+
+    difference = now - date   #gives a timedelta object 
+
+    days = difference.days
+    if days >= 1:
+        if days >= 30: return "1 month ago"
+        if days >= 7: return f"{days // 7}w ago"
+
+        return f"{days}d ago"
+    
+    # Only check seconds if days < 1
+    seconds = difference.seconds
+    if seconds >= 3600:
+        return f"{seconds // 3600}h ago"
+
+    if seconds >= 60:
+        return f"{seconds // 60}m ago"
+
+    return "just now"
+
+    
+def recent_events(events : list[GitHubEvent],n : int = 5) -> list[EventSummary]:
+
+    events = events[:n]        #Gives the recent n events
+
+    events_timeline = []
+
+    for event in events:
+        time = time_ago(event.created_at)
+
+        repo_name = event.repo.name   #repo_name looks something like "Ramya07-cs/GitPulse"
+        repo_name = repo_name.split("/")[-1]
+
+        events_timeline.append(EventSummary(event_type = event.type,repository = repo_name,time_ago = time))
+
+    return events_timeline
+
+
 def analyse_activity(events : list[GitHubEvent]) -> ActivityInsights:
     """Analyzes event patterns to determine behavior and impact."""
-
-    if not events:
-        return ActivityInsights(most_active_day = "N/A",most_active_hour="N/A")
-
-    daily_impact = Counter()      #stores data in the form of list of tuples
-    hourly_impact = Counter() 
 
     #Heatmap's cells are powered by impact-weights which determine the effort,instead of frequency
     heatmap_grid = [[0 for _ in range(24)] for _ in range(7)]   
 
-    days = {"Sunday" : 1, "Monday" : 2, "Tuesday" : 3, "Wednesday" : 4, "Thursday" : 5, "Friday" : 6, "Saturday" : 7}
+    if not events:
+        return ActivityInsights(most_active_day = "N/A",most_active_hour="N/A",heatmap = [0],recent_events = [])
+
+    daily_impact = Counter()      #stores data in the form of list of tuples
+    hourly_impact = Counter() 
 
     for event in events:
         impact = get_event_impact(event)
@@ -173,13 +213,16 @@ def analyse_activity(events : list[GitHubEvent]) -> ActivityInsights:
         daily_impact[day] += impact
         hourly_impact[hour] += impact
 
-        day_index = days[day] - 1
+        day_index = utc_date.weekday()  #gives 0(Monday) through 6(Sunday)
 
         heatmap_grid[day_index][hour] += impact
 
     most_active_day = daily_impact.most_common(1)[0][0] if daily_impact else "N/A"
 
     peak_hour = hourly_impact.most_common(1)[0][0] if hourly_impact else "N/A"
-    readable_hour = datetime.strptime(str(peak_hour), "%H").strftime("%I %p")  
+    readable_hour = datetime.strptime(str(peak_hour), "%H").strftime("%I %p")   #Time is in utc
 
-    return ActivityInsights(most_active_day = most_active_day,most_active_hour=readable_hour,heatmap = heatmap_grid)
+    sorted_events = sorted(events,key = lambda e : e.created_at,reverse=True)
+    most_recent_events = recent_events(sorted_events)
+
+    return ActivityInsights(most_active_day = most_active_day,most_active_hour=readable_hour,heatmap = heatmap_grid,recent_events = most_recent_events)
