@@ -1,9 +1,10 @@
-#This file receives the request, calls a function from another file, and returns the final JSON response to the user.
 from fastapi import FastAPI,Path,Query
 from typing import Annotated,Literal
-from app.github_client import fetch_user,fetch_repos,fetch_events
-from app.schemas import *
-from app.utils import *
+from app.github_client import fetch_user,fetch_repos,fetch_all_events
+from app.schemas import GitHubUser, GitHubRepo, GitHubEvent, RepoStats, DashBoardResponse
+from app.utils.repo_utils import calculate_stars_and_forks, calculate_language_breakdown, calculate_repo_quality_score, get_top_repos
+from app.utils.event_utils import analyse_activity
+from app.utils.score_utils import calculate_collaboration_score
 import asyncio
 
 app = FastAPI(title="GitPulse")
@@ -13,7 +14,7 @@ def health():
     return {"status" : "ok","message":"GitPulse is running"}  
 
 #These routes are working perfect individually when tested,now we can combine them using asyncio.gather()
-"""
+
 @app.get("/user/{username}",response_model = GitHubUser )
 async def get_user( username : Annotated[str,Path(description="Enter a github username")] ):
     return await fetch_user(username)
@@ -24,7 +25,7 @@ async def get_repos(username : str,
                     per_page : int = Query(default=100,gt=0,le=100),
                     sort : Literal["created","updated","full_name","pushed"] = "updated"):
     return await fetch_repos(username,repo_type,per_page,sort)
-"""
+
 @app.get("/user/{username}/events",response_model=list[GitHubEvent])
 async def get_events(username : str,per_page : int = Query(default=100,gt=0,le=100),page : int = Query(default=1,gt = 0,le = 3)):
     page1 =  await fetch_events(username)
@@ -38,11 +39,7 @@ async def get_events(username : str,per_page : int = Query(default=100,gt=0,le=1
 #we'll fetch all data at once and analyse it
 @app.get("/analyse/{username}/dashboard",response_model = DashBoardResponse)
 async def analyse_profile(username : str):
-    user, repos, events =  await asyncio.gather(fetch_user(username),fetch_repos(username),fetch_events(username))
-    
-    if len(events) == 100:    #the user is active and hence there is possibility of having events in page 2 and 3
-            page2, page3 = await asyncio.gather(fetch_events(username,page = 2),fetch_events(username,page = 3))
-            events += page2 + page3
+    user, repos, events =  await asyncio.gather(fetch_user(username),fetch_repos(username),fetch_all_events(username))
 
     stars, forks = calculate_stars_and_forks(repos)
 
@@ -56,6 +53,8 @@ async def analyse_profile(username : str):
 
     collab_score = calculate_collaboration_score(events, username, repos)
     
+    #profile_score_data = calculate_profile_score(user, repos, events)
+
     return DashBoardResponse(profile = user,
                             repositories = repos_with_scores,
                             repo_stats = RepoStats(total_stars = stars,total_forks = forks,language_breakdown = lang_analysis,top_repositories = top_repos),
