@@ -1,5 +1,5 @@
-from app.schemas import GitHubEvent,GitHubRepo,CollaborationBreakdown,CollaborationScore
-
+from app.schemas import GitHubUser,GitHubEvent,GitHubRepo,CollaborationBreakdown,CollaborationScore,ScoreCriterion,ProfileScore
+from datetime import datetime,timezone,timedelta
 
 #This is based on 1-month activity bcz of api restriction
 def calculate_collaboration_score(events: list[GitHubEvent], username: str, repos: list[GitHubRepo]) -> CollaborationScore:
@@ -71,3 +71,79 @@ def calculate_collaboration_score(events: list[GitHubEvent], username: str, repo
         color=color,
         breakdown=breakdown         #useful for frontend
     )
+
+def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: list[GitHubEvent]) -> ProfileScore:
+    breakdown = []
+    
+    # Identity Completeness (Max 30)
+    identity_fields = [
+        ("Bio", user.bio, 10),
+        ("Location", user.location, 5),
+        ("Email", user.email, 5),
+        ("Social Link (X/Twitter)", user.twitter_username, 5),
+        ("Personal Blog/Website", user.blog, 5)
+    ]
+    
+    for label, field, points in identity_fields:
+
+        is_met = bool(field)
+        breakdown.append(ScoreCriterion(label=f"Identity: {label}",
+                                        met=is_met,
+                                        points_earned=points if is_met else 0,
+                                        points_possible=points))
+
+    # Work Evidence (Max 40)
+    original_repos = [r for r in repos if not r.fork]
+    total_stars = sum(r.stars for r in original_repos)
+
+    has_readme = False
+    for r in original_repos:
+        if r.name == user.login:
+            has_readme = True 
+            break
+    
+    work_criteria = [
+        ("Profile README", has_readme, 15),
+        ("Original Repos (>3)", len(original_repos) >= 3, 10),
+        ("Community Trust (Stars > 10)", total_stars >= 10, 15)
+    ]
+    
+    for label, met, points in work_criteria:
+        breakdown.append(ScoreCriterion(
+            label=f"Work: {label}",
+            met=met,
+            points_earned=points if met else 0,
+            points_possible=points
+        ))
+
+    #  Consistency Signal (Max 30) 
+    has_recent_activity = len(events) > 0  # Check for any activity in last 30 days
+    
+    # Check % of repos updated in last 60 days
+    sixty_days_ago = datetime.now(timezone.utc) - timedelta(days = 60)  
+
+    updated_recently = 0
+
+    for r in original_repos:
+        updated_at = datetime.fromisoformat(r.updated_at.replace("Z", "+00:00"))
+        if updated_at <  sixty_days_ago:
+            updated_recently += 1
+    
+    active_maintenance = (updated_recently / len(original_repos) >= 0.3) if original_repos else False
+
+    consistency_criteria = [
+        ("Recent Activity (Last 30d)", has_recent_activity, 15),
+        ("Active Maintenance (>30% repos)", active_maintenance, 15)
+    ]
+
+    for label, met, points in consistency_criteria:
+        breakdown.append(ScoreCriterion(
+            label=f"Signal: {label}",
+            met=met,
+            points_earned=points if met else 0,
+            points_possible=points
+        ))
+
+    total_earned = sum(c.points_earned for c in breakdown)
+
+    return ProfileScore(total_score=total_earned, breakdown=breakdown)

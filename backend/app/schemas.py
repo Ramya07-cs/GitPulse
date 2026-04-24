@@ -115,3 +115,4 @@ class DashBoardResponse(BaseModel):
     repo_stats: RepoStats
     activity_insights: ActivityInsights
     collaboration_score : CollaborationScore
+    profile_score : ProfileScore
