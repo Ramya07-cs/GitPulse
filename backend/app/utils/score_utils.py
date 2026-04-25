@@ -72,6 +72,37 @@ def calculate_collaboration_score(events: list[GitHubEvent], username: str, repo
         breakdown=breakdown         #useful for frontend
     )
 
+def get_profile_actionable_tip(score_data: ProfileScore) -> str:
+    """Analyzes the score breakdown and returns the most impactful tip to improve the score."""
+
+    if score_data.total_score >= 90:
+        return "Your profile looks professional and complete! Keep maintaining your recent activity."
+
+        
+    missing_criteria = [c for c in score_data.breakdown if not c.met]   #type of c is ScoreCriterion which has fields label,met,point_possible,points_earned
+        
+    if not missing_criteria:
+        return "You've checked all the basic boxes! Focus on gaining more community trust (stars) to boost your score further."
+
+    missing_criteria.sort(key=lambda c: c.points_possible, reverse=True)   # Sort by possible points descending to suggest the biggest 'win' first
+        
+    top_missing = missing_criteria[0]   #type of top_missing is also ScoreCriterion
+        
+    tips_map = {
+            "Identity: Bio": "Write a short bio to tell the world what you're passionate about.",
+            "Identity: Social Link (X/Twitter)": "Link your X account to build more social credibility.",
+            "Identity: Personal Blog/Website": "Adding a link to your portfolio or blog is a great way to showcase your deep dives.",
+            "Work: Profile README": "Create a repository named after your username to build a Profile README—it's your digital resume!",
+            "Work: Original Repos (>3)": "Keep building! Having at least 3 original projects shows a strong body of work.",
+            "Work: Community Trust (Stars > 10)": "Improve your project READMEs and share them on social media to earn more stars.",
+            "Work: Follower Milestone (>5)": "Network with other developers bysharing your work on LinkedIn or Twitter to get your first 5 followers and build social proof.",
+            "Signal: Recent Activity (Last 30d)": "It looks like you've been away! Make a small commit or open an issue to show you're active.",
+            "Signal: Active Maintenance (>30% repos updated)": "Dust off your old projects! Updating them shows you're a reliable maintainer."
+        }
+
+    return tips_map.get(top_missing.label, f"Focus on completing the '{top_missing.label}' milestone to boost your score.")   #If identity is email or location,then a default tip is returned
+
+
 def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: list[GitHubEvent]) -> ProfileScore:
     breakdown = []
     
@@ -93,19 +124,21 @@ def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: l
                                         points_possible=points))
 
     # Work Evidence (Max 40)
-    original_repos = [r for r in repos if not r.fork]
-    total_stars = sum(r.stars for r in original_repos)
+    total_repos = user.public_repos
+    total_stars = sum(r.stars for r in repos)
+    total_followers = user.followers
 
     has_readme = False
-    for r in original_repos:
+    for r in repos:
         if r.name == user.login:
             has_readme = True 
             break
     
     work_criteria = [
         ("Profile README", has_readme, 15),
-        ("Original Repos (>3)", len(original_repos) >= 3, 10),
-        ("Community Trust (Stars > 10)", total_stars >= 10, 15)
+        ("Original Repos (>3)", total_repos > 3, 10),            #We can consider forked projects as well
+        ("Community Trust (Stars > 10)", total_stars > 10,8),
+        ("Follower Milestone (>5)",total_followers > 5,7)
     ]
     
     for label, met, points in work_criteria:
@@ -116,24 +149,25 @@ def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: l
             points_possible=points
         ))
 
+
     #  Consistency Signal (Max 30) 
     has_recent_activity = len(events) > 0  # Check for any activity in last 30 days
     
     # Check % of repos updated in last 60 days
-    sixty_days_ago = datetime.now(timezone.utc) - timedelta(days = 60)  
+    sixty_days_ago = datetime.now(timezone.utc) - timedelta(days = 60)             #sixty_days_ago looks like datetime.datetime(2026, 2, 23, 16, 48, 55, 978810, tzinfo=datetime.timezone.utc)
 
     updated_recently = 0
 
-    for r in original_repos:
-        updated_at = datetime.fromisoformat(r.updated_at.replace("Z", "+00:00"))
+    for r in repos:
+        updated_at = datetime.fromisoformat(r.updated_at.replace("Z", "+00:00"))    #if updated_at = "2025-10-17T15:42:06Z",then it looks like datetime.datetime(2025, 10, 17, 15, 42, 6, tzinfo=datetime.timezone.utc)
         if updated_at <  sixty_days_ago:
             updated_recently += 1
     
-    active_maintenance = (updated_recently / len(original_repos) >= 0.3) if original_repos else False
+    active_maintenance = (updated_recently / len(repos) >= 0.3) if repos else False
 
     consistency_criteria = [
         ("Recent Activity (Last 30d)", has_recent_activity, 15),
-        ("Active Maintenance (>30% repos)", active_maintenance, 15)
+        ("Active Maintenance (>30% repos updated)", active_maintenance, 15)
     ]
 
     for label, met, points in consistency_criteria:

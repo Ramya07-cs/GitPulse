@@ -116,3 +116,4 @@ class DashBoardResponse(BaseModel):
     activity_insights: ActivityInsights
     collaboration_score : CollaborationScore
     profile_score : ProfileScore
+    actionable_tip : str
