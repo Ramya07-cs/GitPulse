@@ -13,7 +13,7 @@ ForkEvent         — repo forked
 
 from app.schemas import GitHubEvent,ActivityInsights,EventSummary
 from collections import Counter
-from datetime import datetime,timezone,timedelta
+from datetime import datetime,timezone
 
 # fallback values for unhandled action variants of events in get_event_impact function
 IMPACT_MAP = {

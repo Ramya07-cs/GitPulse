@@ -95,8 +95,8 @@ class CollaborationScore(BaseModel):
     
 class ActivityInsights(BaseModel):
     most_active_day: str
-    most_active_hour: str
-    heatmap : list[list[int]]
+    most_active_hour: str 
+    heatmap : list[list[int]]                   # grid size is 7*24 where 7 rows = Mon–Sun, 24 cols = hours 0–23, values = impact weights
     recent_events : list[EventSummary]
 
 class ScoreCriterion(BaseModel):
@@ -109,6 +109,51 @@ class ProfileScore(BaseModel):
     total_score: int
     breakdown: list[ScoreCriterion]
 
+class Options(BaseModel):
+    tech_stack : dict[str,list[str]]
+    social_links : list[str]    
+    themes : list[str]
+
+class SocialLink(BaseModel):
+    platform: str
+    url: str
+
+class ReadmeRequest(BaseModel):
+    # Pre-filled from dashboard — frontend sends back what it already has
+    top_repos: list[str]          # just repo names, top 3
+    primary_languages : list[str]
+    profile_score: int
+    collaboration_badge: str
+
+    # Tech stack — all checked items as one flat list
+    tech_stack: list[str] = []
+
+    # Optional personal fields
+    role: Annotated[Optional[str],Field(max_length=100)] = None
+    open_to_work: bool = False
+    fun_fact: Optional[str] = None
+    quote: Optional[str] = None
+
+    # Social — pre-filled from GitHub data + user additions
+    twitter: Optional[str] = None
+    blog: Optional[str] = None
+    social_links: list[SocialLink] = []
+
+    #theme for stats card and streak card
+    theme : str = "dark"
+
+    # Toggle states — which sections to include
+    include_stats_card: bool = True
+    include_streak_card: bool = True
+    include_repo_cards: bool = True
+    include_language_badges: bool = True
+    include_social_links: bool = True
+    include_score_badges: bool = True       
+
+class ReadmeResponse(BaseModel):
+    markdown: str       #the full generated README string
+    username: str
+    
 class DashBoardResponse(BaseModel):
     profile : GitHubUser
     repositories : list[RepoWithScore]

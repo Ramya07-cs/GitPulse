@@ -56,7 +56,7 @@ async def fetch_repos(username : str,
             raise HTTPException(status_code=429, detail=f"Limit resets at {calculate_reset_time(response)}")
 
         repos = response.json()
-        if response.status_code == 200 and not repos:   #If the user exists but has no public repos,just return an empty list
+        if not repos:   #If the user exists but has no public repos,just return an empty list
             return []
 
         return [GitHubRepo(**repo) for repo in repos]
@@ -76,7 +76,7 @@ async def fetch_events(username : str, per_page : int = 100,page : int = 1) -> l
 
         events = response.json()
 
-        if response.status_code == 200 and not events: 
+        if not events: 
             return []
 
         return [GitHubEvent(**event) for event in events]   

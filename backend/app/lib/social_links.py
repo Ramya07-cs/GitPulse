@@ -1,5 +1,6 @@
+type = dict[str,tuple[str,str]]
 
-SOCIAL_BADGE_MAP = {
+SOCIAL_BADGE_MAP : type = {
                         "LinkedIn": ("0077B5", "linkedin"),
                         "Twitter": ("1DA1F2", "twitter"),
                         "X": ("000000", "x"),

@@ -93,9 +93,9 @@ def get_profile_actionable_tip(score_data: ProfileScore) -> str:
             "Identity: Social Link (X/Twitter)": "Link your X account to build more social credibility.",
             "Identity: Personal Blog/Website": "Adding a link to your portfolio or blog is a great way to showcase your deep dives.",
             "Work: Profile README": "Create a repository named after your username to build a Profile README—it's your digital resume!",
-            "Work: Original Repos (>3)": "Keep building! Having at least 3 original projects shows a strong body of work.",
+            "Work: Projects (>3)": "Keep building! Having at least 3 original projects shows a strong body of work.",
             "Work: Community Trust (Stars > 10)": "Improve your project READMEs and share them on social media to earn more stars.",
-            "Work: Follower Milestone (>5)": "Network with other developers bysharing your work on LinkedIn or Twitter to get your first 5 followers and build social proof.",
+            "Work: Follower Milestone (>5)": "Network with other developers by sharing your work on LinkedIn or Twitter to get your first 5 followers and build social proof.",
             "Signal: Recent Activity (Last 30d)": "It looks like you've been away! Make a small commit or open an issue to show you're active.",
             "Signal: Active Maintenance (>30% repos updated)": "Dust off your old projects! Updating them shows you're a reliable maintainer."
         }
@@ -136,7 +136,7 @@ def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: l
     
     work_criteria = [
         ("Profile README", has_readme, 15),
-        ("Original Repos (>3)", total_repos > 3, 10),            #We can consider forked projects as well
+        ("Projects (>3)", total_repos > 3, 10),            #We can consider forked projects as well
         ("Community Trust (Stars > 10)", total_stars > 10,8),
         ("Follower Milestone (>5)",total_followers > 5,7)
     ]
@@ -160,7 +160,7 @@ def calculate_profile_score(user: GitHubUser, repos: list[GitHubRepo], events: l
 
     for r in repos:
         updated_at = datetime.fromisoformat(r.updated_at.replace("Z", "+00:00"))    #if updated_at = "2025-10-17T15:42:06Z",then it looks like datetime.datetime(2025, 10, 17, 15, 42, 6, tzinfo=datetime.timezone.utc)
-        if updated_at <  sixty_days_ago:
+        if updated_at >  sixty_days_ago:
             updated_recently += 1
     
     active_maintenance = (updated_recently / len(repos) >= 0.3) if repos else False

@@ -1,7 +1,8 @@
 # This file is to help map every tech stack with its badge details
 # Format:-   "Display Name": ("BG_COLOR", "LOGO_NAME", "LOGO_COLOR")
+type = dict[str,dict[str,tuple[str,str,str]]]
 
-STACK_BADGE_MAP = {
+STACK_BADGE_MAP : type =  {
     "Languages": {
         "Python": ("3776AB", "python", "FFE873"),
         "JavaScript": ("F7DF1E", "javascript", "black"),
