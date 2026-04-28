@@ -122,20 +122,18 @@ def build_social_links(twitter : Optional[str], blog : Optional[str], social_lin
         return ""
     
     badges = []
-    
-    connect_text = "### Let's connect on:\n"
 
     # Pre-filled Twitter
     if twitter:
         bg, logo = SOCIAL_BADGE_MAP.get("Twitter", ("1DA1F2", "twitter"))
         url = f"https://img.shields.io/badge/Twitter-{bg}?style=for-the-badge&logo={logo}&logoColor=white"
-        badges.append(f"[![Twitter]({url})](https://twitter.com/{twitter})")
+        badges.append(f'<a href="https://twitter.com/{twitter}"><img src="{url}" height = "35"/></a>')
     
     # Pre-filled Blog/Portfolio
     if blog:
         bg, logo = SOCIAL_BADGE_MAP.get("Portfolio", ("000000", "linktree"))
         url = f"https://img.shields.io/badge/Portfolio-{bg}?style=for-the-badge&logo={logo}&logoColor=white"
-        badges.append(f"[![Portfolio]({url})]({blog})")
+        badges.append(f'<a href="{blog}"><img src="{url}" height = "35"/></a>')
 
     # Custom Social Links from request.social_links
     for link in social_links:
@@ -143,22 +141,20 @@ def build_social_links(twitter : Optional[str], blog : Optional[str], social_lin
         if details:
             bg, logo = details
             badge_url = f"https://img.shields.io/badge/{quote_plus(link.platform)}-{bg}?style=for-the-badge&logo={logo}&logoColor=white"
-            badges.append(f"[![{link.platform}]({badge_url})]({link.url})")
+            badges.append(f'<a href="{link.url}"><img src="{url}" height = "35"/></a>')
 
     if not badges:
         return ""
 
-    badge_row = "&nbsp;".join(badges)
-    inner = "\n".join(badge_row)
-    return connect_text + f'<div align="center">\n\n{inner}\n\n</div>'
+    return f"###  Let's Connect\n\n" + f'<p align="center">\n  {" &nbsp; ".join(badges)}\n</p>'    #join badges with a non-breaking space for horizontal flow
 
 
 def build_score_section(profile_score : int, collaboration_badge : str, include : bool) -> str:
     if not include:
         return ""
     
-    score_badge = f"![Profile Score](https://img.shields.io/badge/Profile%20Score-{profile_score}%2F100-7851A9)"      # / is parsed as %2F
-    collab_badge = f"![Collaboration](https://img.shields.io/badge/Status-{quote_plus(collaboration_badge)}-2ea043)"
+    score_badge = f"![Profile Score](https://img.shields.io/badge/Profile%20Score-{profile_score}%2F100-7851A9)?style=for-the-badge"      # / is parsed as %2F
+    collab_badge = f"![Collaboration](https://img.shields.io/badge/Status-{quote_plus(collaboration_badge)}-2ea043)?style=for-the-badge"
     
     return "### Profile Score \n\n" + f"{score_badge}   {collab_badge}"
 
@@ -196,6 +192,9 @@ def build_quote(quote: Optional[str]) -> str:
         return ""
     return f"###  Quote I Live By\n\n> _{quote.strip()}_"
 
+#Note:
+#the markdown string in the response would look messy bcz of raw html tags and escape characters
+# once that string is passed to a frontend component that understands markdown,it renders as a clean, formatted document
 
 def generate_readme(username: str, request: ReadmeRequest) -> str:
     # 1. Typing SVG
