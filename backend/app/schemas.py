@@ -120,10 +120,13 @@ class SocialLink(BaseModel):
 
 class ReadmeRequest(BaseModel):
     # Pre-filled from dashboard — frontend sends back what it already has
+    name : str
+    bio_text : str
     top_repos: list[str]          # just repo names, top 3
     primary_languages : list[str]
     profile_score: int
     collaboration_badge: str
+    interests : str
 
     # Tech stack — all checked items as one flat list
     tech_stack: list[str] = []
@@ -148,7 +151,9 @@ class ReadmeRequest(BaseModel):
     include_repo_cards: bool = True
     include_language_badges: bool = True
     include_social_links: bool = True
-    include_score_badges: bool = True       
+    include_score_badges: bool = True 
+    include_most_used_languages: bool = True  
+    include_profile_views: bool = True
 
 class ReadmeResponse(BaseModel):
     markdown: str       #the full generated README string
