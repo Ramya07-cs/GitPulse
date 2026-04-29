@@ -30,6 +30,12 @@ app.add_middleware(
                     allow_headers=["*"],
                     )
 
+                    
+@app.get("/")
+def root():
+    return {"message": "GitPulse API", "docs": "/docs", "health": "/health"}
+
+
 @app.get("/health")
 def health():
     return {"status" : "ok","message":"GitPulse is running"}  
