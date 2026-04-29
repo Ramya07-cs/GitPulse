@@ -9,7 +9,7 @@ ready to download and drop into your profile repo.
 **Base URL:**  [`https:/gitpulse-0bi1.onrender.com`](https://gitpulse-0bi1.onrender.com)
 
 **Swagger UI:** [`https://gitpulse-0bi1.onrender.com/docs`](https://gitpulse-0bi1.onrender.com/docs)
-
+(At this stage, both urls land on the page)
 
 # Tech Stack
  
