@@ -1,5 +1,6 @@
 from fastapi import FastAPI,Path,Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from typing import Annotated,Literal
 
@@ -31,9 +32,9 @@ app.add_middleware(
                     )
 
                     
-@app.get("/")
+@app.get("/",include_in_schema=False)
 def root():
-    return {"message": "GitPulse API", "docs": "/docs", "health": "/health"}
+    return RedirectResponse(url = "/docs")    #Redirects the root URL to the interactive API documentation
 
 
 @app.get("/health")
