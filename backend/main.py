@@ -16,7 +16,7 @@ from app.lib.tech_stack import STACK_BADGE_MAP
 
 import asyncio
 
-app = FastAPI(title="GitPulse")
+app = FastAPI(title="GitPulse",docs_url="/docs", redoc_url="/redoc")
 
 #required to connect fastapi and vite
 app.add_middleware(
@@ -33,6 +33,16 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status" : "ok","message":"GitPulse is running"}  
+
+
+# frontend calls this endpoint once when it loads the README config page
+# then uses the data to render the category sections with toggle buttons and the theme dropdown
+@app.get("/user/readme/options",response_model=Options)             
+def get_options():
+    return Options(tech_stack = {category : list(item.keys()) for category,item in STACK_BADGE_MAP.items()},
+                    social_links =  [platform for platform in SOCIAL_BADGE_MAP.keys()],
+                    themes = ["default", "dark", "github_dark", "midnight-purple", "rose", "blue_navy"]
+                    )
 
 
 #we'll fetch all data at once and analyse it
@@ -64,15 +74,6 @@ async def analyse_profile(username : str):
                             profile_score = profile_score_data,
                             actionable_tip = actionable_tip)
 
-
-# frontend calls this endpoint once when it loads the README config page
-# then uses the data to render the category sections with toggle buttons and the theme dropdown
-@app.get("/user/readme/options",response_model=Options)             
-def get_options():
-    return Options(tech_stack = {category : list(item.keys()) for category,item in STACK_BADGE_MAP.items()},
-                    social_links =  [platform for platform in SOCIAL_BADGE_MAP.keys()],
-                    themes = ["default", "dark", "github_dark", "midnight-purple", "rose", "blue_navy"]
-                    )
 
 #generates the md string based on the form inputs and toggle states           
 @app.post("/user/{username}/readme",response_model= ReadmeResponse)
